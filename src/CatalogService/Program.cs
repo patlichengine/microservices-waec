@@ -3,7 +3,13 @@ using System.Collections.Concurrent;
 var builder = WebApplication.CreateBuilder(args);
 // Register a singleton store. In-memory storage keeps early labs simple; production needs a database.
 builder.Services.AddSingleton<SubjectStore>();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
+
+app.UseSwagger();
 
 app.MapGet("/health", () => Results.Ok(new { service = "catalog", status = "healthy" }));
 app.MapGet("/api/catalog/subjects", (SubjectStore store) => Results.Ok(store.GetAll()));

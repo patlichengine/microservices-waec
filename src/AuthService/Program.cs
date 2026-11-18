@@ -55,7 +55,13 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireClaim("permission", "users.manage"));
 });
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
+
+app.UseSwagger();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -198,10 +204,18 @@ app.MapPost("/api/auth/logout", async (RefreshRequest request, AuthDbContext db)
 });
 
 // The /me endpoint demonstrates reading identity, roles, and fine-grained permissions from JWT claims.
+// app.MapGet("/api/auth/me", (ClaimsPrincipal user) => Results.Ok(new
+// {
+//     id = user.FindFirstValue(JwtRegisteredClaimNames.Sub),
+//     email = user.FindFirstValue(JwtRegisteredClaimNames.Email),
+//     roles = user.FindAll(ClaimTypes.Role).Select(c => c.Value),
+//     permissions = user.FindAll("permission").Select(c => c.Value)
+// })).RequireAuthorization();
+
 app.MapGet("/api/auth/me", (ClaimsPrincipal user) => Results.Ok(new
 {
-    id = user.FindFirstValue(JwtRegisteredClaimNames.Sub),
-    email = user.FindFirstValue(JwtRegisteredClaimNames.Email),
+    id = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue(JwtRegisteredClaimNames.Sub),
+    email = user.FindFirstValue(ClaimTypes.Email) ?? user.FindFirstValue(JwtRegisteredClaimNames.Email),
     roles = user.FindAll(ClaimTypes.Role).Select(c => c.Value),
     permissions = user.FindAll("permission").Select(c => c.Value)
 })).RequireAuthorization();

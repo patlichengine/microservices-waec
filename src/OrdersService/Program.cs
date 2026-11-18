@@ -11,7 +11,13 @@ builder.Services.AddHttpClient<CatalogClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(3);
 });
 builder.Services.AddSingleton<OrderStore>();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
+
+app.UseSwagger();
 
 app.MapGet("/health", () => Results.Ok(new { service = "orders", status = "healthy" }));
 app.MapGet("/api/orders", (OrderStore store) => Results.Ok(store.GetAll()));

@@ -11,7 +11,12 @@ builder.Services.AddDbContext<RegistrationDbContext>(options =>
         ?? throw new InvalidOperationException("ConnectionStrings:Registrations is required.")));
 builder.Services.AddSingleton<RegistrationEventPublisher>();
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build();
+
+app.UseSwagger();
 
 // EnsureCreated is acceptable for a disposable training lab; production systems should use EF migrations.
 using (var scope = app.Services.CreateScope())
