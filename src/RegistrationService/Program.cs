@@ -16,7 +16,11 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-app.UseSwagger();
+app.UseSwagger(options =>
+{
+    options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0;
+});
+
 
 // EnsureCreated is acceptable for a disposable training lab; production systems should use EF migrations.
 using (var scope = app.Services.CreateScope())

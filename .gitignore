@@ -7,3 +7,5 @@
 *.suo
 .env
 .DS_Store
+
+.fake

@@ -1,11 +1,11 @@
 # Compile with the SDK, then ship only published output in the runtime image.
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY src/CatalogService/CatalogService.csproj src/CatalogService/
 RUN dotnet restore src/CatalogService/CatalogService.csproj
 COPY src/CatalogService/ src/CatalogService/
 RUN dotnet publish src/CatalogService/CatalogService.csproj -c Release -o /app/publish --no-restore
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 EXPOSE 8080
