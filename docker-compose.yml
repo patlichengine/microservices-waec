@@ -6,7 +6,7 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "TrainingOnly_StrongPassword_2026!"
     ports:
-      - "1433:1433"
+      - "1435:1433"
     volumes:
       - waec-sql-data:/var/opt/mssql
   rabbitmq:
@@ -32,7 +32,7 @@ services:
       Jwt__Issuer: Waec.Auth
       Jwt__Audience: Waec.Api
       Jwt__Key: ${JWT_KEY:-local-only-change-this-development-key-before-deployment-2026}
-      Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES:-10}
+      Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES:-1440}
       Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS:-7}
       BootstrapAdmin__Email: ${ADMIN_EMAIL:-admin@waec-training.local}
       BootstrapAdmin__Password: ${ADMIN_PASSWORD:-ChangeThis-Admin-Password-2026!}
@@ -78,6 +78,39 @@ services:
         condition: service_started
       rabbitmq:
         condition: service_healthy
+  
+  student:
+    build:
+      context: .
+      dockerfile: src/StudentService/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Students: "Server=host.docker.internal,1433;Database=WaecStudents;User Id=sa;Password=sa;TrustServerCertificate=True;"
+      RabbitMq__Host: rabbitmq
+      RabbitMq__User: waec
+      RabbitMq__Password: training-local-only
+    ports:
+      - "8085:8080"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  school:
+    build:
+      context: .
+      dockerfile: src/SchoolService/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Schools: "Server=host.docker.internal,1433;Database=WaecSchools;User Id=sa;Password=sa;TrustServerCertificate=True;"
+      RabbitMq__Host: rabbitmq
+      RabbitMq__User: waec
+      RabbitMq__Password: training-local-only
+    ports:
+      - "8086:8080"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
   notification-worker:
     build:
       context: .
@@ -103,13 +136,17 @@ services:
       ReverseProxy__Clusters__catalog__Destinations__destination1__Address: http://catalog:8080/
       ReverseProxy__Clusters__orders__Destinations__destination1__Address: http://orders:8080/
       ReverseProxy__Clusters__registration__Destinations__destination1__Address: http://registration:8080/
+      ReverseProxy__Clusters__student__Destinations__destination1__Address: http://student:8080/
+      ReverseProxy__Clusters__school__Destinations__destination1__Address: http://school:8080/
     ports:
       - "8080:8080"
     depends_on:
       - auth
       - catalog
       - orders
+      - student
       - registration
+      - school
 
 volumes:
   waec-sql-data:

@@ -3,7 +3,9 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
+using Microsoft.AspNetCore.Http.Features; // Add this using at the top of Gateway Program.cs
+
 
 var builder = WebApplication.CreateBuilder(args);
 var jwt = builder.Configuration.GetSection("Jwt");
@@ -25,6 +27,13 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Description = "Enter your JWT token."
     });
+
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
+
+
 });
 
 // 2. Authentication & Authorization
@@ -55,6 +64,8 @@ builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSecti
 var app = builder.Build();
 
 // 3. Intercept downstream /swagger/*/swagger/v1/swagger.json responses and inject JWT locks
+// 3. Intercept downstream /swagger/*/swagger/v1/swagger.json responses and inject JWT locks
+// 3. Intercept downstream /swagger/*/swagger/v1/swagger.json responses and inject JWT locks
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path.Value ?? "";
@@ -62,11 +73,21 @@ app.Use(async (context, next) =>
         path.EndsWith("/swagger.json", StringComparison.OrdinalIgnoreCase) &&
         !path.Equals("/swagger/v1/swagger.json", StringComparison.OrdinalIgnoreCase))
     {
-        var originalBody = context.Response.Body;
-        using var buffer = new MemoryStream();
-        context.Response.Body = buffer;
+        context.Request.Headers.Remove("Accept-Encoding");
 
-        await next();
+        var originalBodyFeature = context.Features.Get<IHttpResponseBodyFeature>()!;
+        using var buffer = new MemoryStream();
+        var bufferFeature = new StreamResponseBodyFeature(buffer);
+        context.Features.Set<IHttpResponseBodyFeature>(bufferFeature);
+
+        try
+        {
+            await next();
+        }
+        finally
+        {
+            context.Features.Set(originalBodyFeature);
+        }
 
         buffer.Position = 0;
         var json = await new StreamReader(buffer).ReadToEndAsync();
@@ -74,10 +95,26 @@ app.Use(async (context, next) =>
         if (context.Response.StatusCode == 200 && !string.IsNullOrWhiteSpace(json))
         {
             json = InjectJwtSecurityWhereAuthorized(json, app.Configuration);
-            context.Response.Headers.ContentLength = null; // Reset length after modifying JSON
+        }
+        else
+        {
+            // Return a valid minimal OpenAPI 3.0 stub showing the exact HTTP error in Swagger UI
+            json = $$"""
+            {
+              "openapi": "3.0.4",
+              "info": {
+                "title": "Downstream Error (HTTP {{context.Response.StatusCode}}) for {{path}}",
+                "version": "v1"
+              },
+              "paths": {}
+            }
+            """;
+            context.Response.StatusCode = 200;
         }
 
-        context.Response.Body = originalBody;
+        context.Response.Headers.ContentLength = null;
+        context.Response.Headers.Remove("Transfer-Encoding");
+        context.Response.ContentType = "application/json; charset=utf-8";
         await context.Response.WriteAsync(json);
         return;
     }
@@ -85,15 +122,26 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseSwagger();
+
+// Explicitly restrict Gateway's own Swagger JSON to /swagger/v1/swagger.json
+app.UseSwagger(options =>
+{
+    //options.RouteTemplate = "swagger/{documentName}/swagger.json";
+    options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0;
+});
+
+
 app.UseSwaggerUI(options =>
 {
+    // Put Gateway API v1 first so Swagger UI always loads cleanly even if a downstream service is stopped
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Gateway API v1");
     options.SwaggerEndpoint("/swagger/auth/swagger/v1/swagger.json", "Auth Service v1");
     options.SwaggerEndpoint("/swagger/catalog/swagger/v1/swagger.json", "Catalog Service v1");
     options.SwaggerEndpoint("/swagger/registration/swagger/v1/swagger.json", "Registrations Service v1");
     options.SwaggerEndpoint("/swagger/orders/swagger/v1/swagger.json", "Orders Service v1");
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Gateway API v1");
-    options.EnablePersistAuthorization(); // Keeps your JWT logged in across all 5 dropdown services
+    options.SwaggerEndpoint("/swagger/student/swagger/v1/swagger.json", "Student Service v1");
+    options.SwaggerEndpoint("/swagger/school/swagger/v1/swagger.json", "School Service v1");
+    options.EnablePersistAuthorization();
 });
 
 app.UseAuthentication();

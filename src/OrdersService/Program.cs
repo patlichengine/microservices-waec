@@ -17,7 +17,11 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-app.UseSwagger();
+app.UseSwagger(options =>
+{
+    options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_0;
+});
+
 
 app.MapGet("/health", () => Results.Ok(new { service = "orders", status = "healthy" }));
 app.MapGet("/api/orders", (OrderStore store) => Results.Ok(store.GetAll()));
