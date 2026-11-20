@@ -5,19 +5,17 @@
 using StudentService.Messaging;
 
 namespace StudentService.Services;
-    public partial class StudentService : IStudentService
-    {
-        private readonly IStudentRepository _studentRepository;
-        private readonly IStudentEventPublisher _eventPublisher;
+public partial class StudentService(
+    IStudentRepository studentRepository,
+    IStudentEventPublisher eventPublisher,
+    ILogger<StudentService> logger) : IStudentService
+{
+    private readonly IStudentRepository _studentRepository = studentRepository;
+    private readonly IStudentEventPublisher _eventPublisher = eventPublisher;
+    private readonly ILogger<StudentService> _logger = logger;
 
-        public StudentService(IStudentRepository studentRepository, IStudentEventPublisher eventPublisher)
-        {
-            _studentRepository = studentRepository;
-            _eventPublisher = eventPublisher;
-        }
-
-        // this method maps a Student object to a StudentResponseDto object. The method should handle any null values and return appropriate default values for the properties of the StudentResponseDto object. The method should be defined as a private static method in the StudentService class and should be called from the GetStudentByIdAsync and GetStudentByEmailAsync methods to map the Student objects returned from the database to StudentResponseDto objects before returning them to the caller.
-        private static StudentResponseDto MapResponse(Student student)
+    // this method maps a Student object to a StudentResponseDto object. The method should handle any null values and return appropriate default values for the properties of the StudentResponseDto object. The method should be defined as a private static method in the StudentService class and should be called from the GetStudentByIdAsync and GetStudentByEmailAsync methods to map the Student objects returned from the database to StudentResponseDto objects before returning them to the caller.
+    private static StudentResponseDto MapResponse(Student student)
         {
             return new StudentResponseDto
             {
@@ -57,6 +55,17 @@ namespace StudentService.Services;
             return MapResponse(student);
         }
 
+        public async Task<StudentResponseDto?> GetStudentByNumberAsync(string number, CancellationToken cancellationToken = default)
+        {
+            var student = await _studentRepository.GetByNumberAsync(number, cancellationToken);
+            if (student == null)
+            {
+                return null;
+            }
+
+            return MapResponse(student);
+        }
+
         // this method lists all students and returns a list of StudentResponseDto objects. The method should use the ListAsync method of the IStudentRepository interface to get the students from the database. The method should also handle any exceptions that may occur during the database operations and return appropriate error messages to the caller. The method should also use cancellation tokens to allow for graceful cancellation of long-running operations. The method should also use asynchronous programming techniques to improve performance and scalability of the application. The method should also use dependency injection to allow for easy testing and mocking of the repository class. The method should also use logging to provide useful information about the operations being performed and any errors that may occur.
         public async Task<IEnumerable<StudentResponseDto>> ListStudentsAsync(CancellationToken cancellationToken = default)
         {
@@ -77,10 +86,17 @@ namespace StudentService.Services;
                 throw new InvalidOperationException($"A student with the email {normalizedEmail} already exists.");
             }
 
+            var existingNo = await _studentRepository.GetByNumberAsync(dto.StudentNumber);
+            if (existingNo != null)
+            {
+                throw new InvalidOperationException($"A student with the Student Number {dto.StudentNumber} already exists.");
+            }
+
             // create a new student object and add it to the database
             var student = new Student
             {
                 Id = Guid.NewGuid(),
+                StudentNumber = dto.StudentNumber,
                 FirstName = dto.FirstName,
                 LastName = dto.LastName,
                 EmailAddress = normalizedEmail,
@@ -96,10 +112,20 @@ namespace StudentService.Services;
 
             var responseDto = MapResponse(student);
 
-            await _eventPublisher.PublishStudentCreatedEventAsync(responseDto, cancellationToken);
+            try
+            {
+                await _eventPublisher.PublishStudentCreatedEventAsync(responseDto, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                // Log without failing the HTTP request since the student is already saved in SQL Server
+                _logger.LogError(
+                    ex,
+                    "Student {StudentId} was created, but failed to publish student.created event.",
+                    student.Id);
+            }
 
-
-            return student.Id;
+             return student.Id;
         }
 
         // this method updates an existing student and returns a boolean indicating whether the operation was successful. The method should use the GetAsync method of the IStudentRepository interface to get the student from the database. The method should also handle any exceptions that may occur during the database operations and return appropriate error messages to the caller. The method should also use cancellation tokens to allow for graceful cancellation of long-running operations. The method should also use asynchronous programming techniques to improve performance and scalability of the application. The method should also use dependency injection to allow for easy testing and mocking of the repository class. The method should also use logging to provide useful information about the operations being performed and any errors that may occur.
@@ -125,7 +151,8 @@ namespace StudentService.Services;
 
             student.FirstName = dto.FirstName;
             student.LastName = dto.LastName;
-            //student.EmailAddress = normalizedEmail;
+            student.StudentNumber = dto.StudentNumber;
+            student.EmailAddress = normalizedEmail;
             student.PhoneNumber = dto.PhoneNumber;
             student.Gender = dto.Gender;
             student.SchoolName = dto.SchoolName;

@@ -42,6 +42,17 @@ public class StudentController : ControllerBase
         return Ok(student);
     }
 
+    [HttpGet("number/{number}")]
+    public async Task<ActionResult<StudentResponseDto>> GetStudentByNumberAsync(string number, CancellationToken cancellationToken)
+    {
+        var student = await _studentService.GetStudentByNumberAsync(number, cancellationToken);
+        if (student == null)
+        {
+            return NotFound();
+        }
+        return Ok(student);
+    }
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<StudentResponseDto>>> ListStudentsAsync(CancellationToken cancellationToken)
     {

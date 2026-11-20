@@ -68,12 +68,20 @@ namespace StudentService.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("StudentNumber")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EmailAddress")
                         .IsUnique();
 
                     b.HasIndex("Nin")
+                        .IsUnique();
+
+                    b.HasIndex("StudentNumber")
                         .IsUnique();
 
                     b.ToTable("Students", (string)null);

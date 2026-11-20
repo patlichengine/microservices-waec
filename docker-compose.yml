@@ -4,93 +4,98 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "TrainingOnly_StrongPassword_2026!"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
     ports:
-      - "1435:1433"
+      - "${SQLSERVER_PORT}:1433"
     volumes:
       - waec-sql-data:/var/opt/mssql
+
   rabbitmq:
     image: rabbitmq:3-management
     environment:
-      RABBITMQ_DEFAULT_USER: waec
-      RABBITMQ_DEFAULT_PASS: training-local-only
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 5s
       retries: 10
+
   auth:
     build:
       context: .
       dockerfile: src/AuthService/Dockerfile
     environment:
-      ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__Auth: "Server=sqlserver,1433;Database=WaecAuth;User Id=sa;Password=TrainingOnly_StrongPassword_2026!;TrustServerCertificate=True"
-      Jwt__Issuer: Waec.Auth
-      Jwt__Audience: Waec.Api
-      Jwt__Key: ${JWT_KEY:-local-only-change-this-development-key-before-deployment-2026}
-      Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES:-1440}
-      Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS:-7}
-      BootstrapAdmin__Email: ${ADMIN_EMAIL:-admin@waec-training.local}
-      BootstrapAdmin__Password: ${ADMIN_PASSWORD:-ChangeThis-Admin-Password-2026!}
+      ASPNETCORE_URLS: ${ASPNETCORE_URLS}
+      ConnectionStrings__Auth: "Server=sqlserver,1433;Database=${AUTH_DB_NAME};User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__Key: ${JWT_KEY}
+      Jwt__AccessTokenMinutes: ${JWT_ACCESS_TOKEN_MINUTES}
+      Jwt__RefreshTokenDays: ${JWT_REFRESH_TOKEN_DAYS}
+      BootstrapAdmin__Email: ${ADMIN_EMAIL}
+      BootstrapAdmin__Password: ${ADMIN_PASSWORD}
     ports:
-      - "8084:8080"
+      - "${AUTH_PORT}:8080"
     depends_on:
       sqlserver:
         condition: service_started
     restart: unless-stopped
+
   catalog:
     build:
       context: .
       dockerfile: src/CatalogService/Dockerfile
     environment:
-      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_URLS: ${ASPNETCORE_URLS}
     ports:
-      - "8081:8080"
+      - "${CATALOG_PORT}:8080"
+
   orders:
     build:
       context: .
       dockerfile: src/OrdersService/Dockerfile
     environment:
-      ASPNETCORE_URLS: http://+:8080
-      Catalog__BaseUrl: http://catalog:8080
+      ASPNETCORE_URLS: ${ASPNETCORE_URLS}
+      Catalog__BaseUrl: ${CATALOG_BASE_URL}
     ports:
-      - "8082:8080"
+      - "${ORDERS_PORT}:8080"
     depends_on:
       - catalog
+
   registration:
     build:
       context: .
       dockerfile: src/RegistrationService/Dockerfile
     environment:
-      ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__Registrations: "Server=sqlserver,1433;Database=WaecRegistrations;User Id=sa;Password=TrainingOnly_StrongPassword_2026!;TrustServerCertificate=True"
+      ASPNETCORE_URLS: ${ASPNETCORE_URLS}
+      ConnectionStrings__Registrations: "Server=sqlserver,1433;Database=${REGISTRATION_DB_NAME};User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
       RabbitMq__Host: rabbitmq
-      RabbitMq__User: waec
-      RabbitMq__Password: training-local-only
+      RabbitMq__User: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD}
     ports:
-      - "8083:8080"
+      - "${REGISTRATION_PORT}:8080"
     depends_on:
       sqlserver:
         condition: service_started
       rabbitmq:
         condition: service_healthy
-  
+
   student:
     build:
       context: .
       dockerfile: src/StudentService/Dockerfile
     environment:
-      ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__Students: "Server=host.docker.internal,1433;Database=WaecStudents;User Id=sa;Password=sa;TrustServerCertificate=True;"
+      ASPNETCORE_URLS: ${ASPNETCORE_URLS}
+      ConnectionStrings__Students: "Server=${HOST_DB_SERVER};Database=${STUDENT_DB_NAME};User Id=${HOST_DB_USER};Password=${HOST_DB_PASSWORD};TrustServerCertificate=True;"
       RabbitMq__Host: rabbitmq
-      RabbitMq__User: waec
-      RabbitMq__Password: training-local-only
+      RabbitMq__User: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD}
     ports:
-      - "8085:8080"
+      - "${STUDENT_PORT}:8080"
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -100,13 +105,13 @@ services:
       context: .
       dockerfile: src/SchoolService/Dockerfile
     environment:
-      ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__Schools: "Server=host.docker.internal,1433;Database=WaecSchools;User Id=sa;Password=sa;TrustServerCertificate=True;"
+      ASPNETCORE_URLS: ${ASPNETCORE_URLS}
+      ConnectionStrings__Schools: "Server=${HOST_DB_SERVER};Database=${SCHOOL_DB_NAME};User Id=${HOST_DB_USER};Password=${HOST_DB_PASSWORD};TrustServerCertificate=True;"
       RabbitMq__Host: rabbitmq
-      RabbitMq__User: waec
-      RabbitMq__Password: training-local-only
+      RabbitMq__User: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD}
     ports:
-      - "8086:8080"
+      - "${SCHOOL_PORT}:8080"
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -117,29 +122,31 @@ services:
       dockerfile: src/NotificationWorker/Dockerfile
     environment:
       RabbitMq__Host: rabbitmq
-      RabbitMq__User: waec
-      RabbitMq__Password: training-local-only
+      RabbitMq__User: ${RABBITMQ_USER}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD}
     depends_on:
       rabbitmq:
         condition: service_healthy
     restart: unless-stopped
+
   gateway:
     build:
       context: .
       dockerfile: src/ExamGateway/Dockerfile
     environment:
-      ASPNETCORE_URLS: http://+:8080
-      Jwt__Issuer: Waec.Auth
-      Jwt__Audience: Waec.Api
-      Jwt__Key: ${JWT_KEY:-local-only-change-this-development-key-before-deployment-2026}
-      ReverseProxy__Clusters__auth__Destinations__destination1__Address: http://auth:8080/
-      ReverseProxy__Clusters__catalog__Destinations__destination1__Address: http://catalog:8080/
-      ReverseProxy__Clusters__orders__Destinations__destination1__Address: http://orders:8080/
-      ReverseProxy__Clusters__registration__Destinations__destination1__Address: http://registration:8080/
-      ReverseProxy__Clusters__student__Destinations__destination1__Address: http://student:8080/
-      ReverseProxy__Clusters__school__Destinations__destination1__Address: http://school:8080/
+      ASPNETCORE_URLS: ${ASPNETCORE_URLS}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__Key: ${JWT_KEY}
+      ReverseProxy__Clusters__auth__Destinations__destination1__Address: ${AUTH_CLUSTER_URL}
+      ReverseProxy__Clusters__catalog__Destinations__destination1__Address: ${CATALOG_CLUSTER_URL}
+      ReverseProxy__Clusters__orders__Destinations__destination1__Address: ${ORDERS_CLUSTER_URL}
+      ReverseProxy__Clusters__registration__Destinations__destination1__Address: ${REGISTRATION_CLUSTER_URL}
+      ReverseProxy__Clusters__student__Destinations__destination1__Address: ${STUDENT_CLUSTER_URL}
+      ReverseProxy__Clusters__school__Destinations__destination1__Address: ${SCHOOL_CLUSTER_URL}
+
     ports:
-      - "8080:8080"
+      - "${GATEWAY_PORT}:8080"
     depends_on:
       - auth
       - catalog

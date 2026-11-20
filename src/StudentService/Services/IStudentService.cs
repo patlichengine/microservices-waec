@@ -8,6 +8,7 @@ public interface IStudentService
 {
     Task<StudentResponseDto?> GetStudentByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<StudentResponseDto?> GetStudentByEmailAsync(string email, CancellationToken cancellationToken = default);
+    Task<StudentResponseDto?> GetStudentByNumberAsync(string number, CancellationToken cancellationToken = default);
     Task<IEnumerable<StudentResponseDto>> ListStudentsAsync(CancellationToken cancellationToken = default);
     Task<Guid> CreateStudentAsync(CreateStudentDto dto, CancellationToken cancellationToken = default);
     Task<StudentResponseDto?> UpdateStudentAsync(Guid id, UpdateStudentDto dto, CancellationToken cancellationToken = default);
