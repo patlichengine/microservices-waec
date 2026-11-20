@@ -3,7 +3,7 @@ namespace SchoolService.DTOs;
 
 public class CreateSchoolDto
 {
-    public Guid Id { get; set; }
+    //public Guid Id { get; set; }
     public string SchoolNo { get; set; } = null!;
     public string SchoolName { get; set; } = null!;
 

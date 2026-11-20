@@ -56,6 +56,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("CatalogManage", policy => policy.RequireClaim("permission", "catalog.manage"));
     options.AddPolicy("RegistrationsRead", policy => policy.RequireClaim("permission", "registrations.read"));
     options.AddPolicy("RegistrationsCreate", policy => policy.RequireClaim("permission", "registrations.create"));
+    options.AddPolicy("StudentCreate", policy => policy.RequireClaim("permission", "student.create"));
     options.AddPolicy("Authenticated", policy => policy.RequireAuthenticatedUser());
 });
 
@@ -63,8 +64,6 @@ builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSecti
 
 var app = builder.Build();
 
-// 3. Intercept downstream /swagger/*/swagger/v1/swagger.json responses and inject JWT locks
-// 3. Intercept downstream /swagger/*/swagger/v1/swagger.json responses and inject JWT locks
 // 3. Intercept downstream /swagger/*/swagger/v1/swagger.json responses and inject JWT locks
 app.Use(async (context, next) =>
 {

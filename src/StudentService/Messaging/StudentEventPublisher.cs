@@ -5,6 +5,14 @@ using StudentService.DTOs;
 
 namespace StudentService.Messaging;
 
+public sealed record StudentCreatedEvent(
+    Guid StudentId,
+    string StudentNumber,
+    string FullName,
+    string EmailAddress,
+    string SchoolName,
+    DateTime CreatedAtUtc);
+
 public interface IStudentEventPublisher
 {
     Task PublishStudentCreatedEventAsync(StudentResponseDto student, CancellationToken ct = default);
@@ -14,7 +22,7 @@ public sealed class StudentEventPublisher(
     IConfiguration configuration,
     ILogger<StudentEventPublisher> logger) : IStudentEventPublisher
 {
-    private const string ExchangeName = "student.created";
+    private const string QueueName = "student.created";
 
     public Task PublishStudentCreatedEventAsync(StudentResponseDto student, CancellationToken ct = default)
     {
@@ -30,21 +38,36 @@ public sealed class StudentEventPublisher(
         using var connection = factory.CreateConnection();
         using var channel = connection.CreateModel();
 
-        channel.ExchangeDeclare(
-            exchange: ExchangeName,
-            type: ExchangeType.Fanout,
-            durable: true);
+        channel.QueueDeclare(
+            queue: QueueName,
+            durable: true,
+            exclusive: false,
+            autoDelete: false);
 
-        var message = JsonSerializer.Serialize(student);
-        var body = Encoding.UTF8.GetBytes(message);
+        var eventPayload = new StudentCreatedEvent(
+            StudentId: student.Id,
+            StudentNumber: student.StudentNumber,
+            FullName: $"{student.FirstName} {student.LastName}".Trim(),
+            EmailAddress: student.EmailAddress,
+            SchoolName: student.SchoolName,
+            CreatedAtUtc: DateTime.UtcNow);
+
+        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(eventPayload));
+
+        var properties = channel.CreateBasicProperties();
+        properties.Persistent = true;
 
         channel.BasicPublish(
-            exchange: ExchangeName,
-            routingKey: string.Empty,
-            basicProperties: null,
+            exchange: string.Empty,
+            routingKey: QueueName,
+            basicProperties: properties,
             body: body);
 
-        logger.LogInformation("Published student.created event for Student ID {StudentId}", student.Id);
+        logger.LogInformation(
+            "Published {QueueName} event for Student {StudentNumber} ({StudentId})",
+            QueueName,
+            student.StudentNumber,
+            student.Id);
 
         return Task.CompletedTask;
     }

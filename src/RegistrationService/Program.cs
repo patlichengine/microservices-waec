@@ -125,3 +125,4 @@ public sealed class RegistrationEventPublisher(IConfiguration configuration)
         return Task.CompletedTask;
     }
 }
+

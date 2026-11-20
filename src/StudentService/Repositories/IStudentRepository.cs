@@ -9,6 +9,8 @@ public interface IStudentRepository
 {
     Task<Student?> GetAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Student?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
+    Task<Student?> GetByNumberAsync(string number, CancellationToken cancellationToken = default);
+
     Task<IEnumerable<Student>> ListAsync(CancellationToken cancellationToken = default);
     Task AddAsync(Student dto, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

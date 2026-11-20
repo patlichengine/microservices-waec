@@ -26,6 +26,7 @@ public class StudentDbContext : DbContext
         modelBuilder.Entity<Student>(entity => 
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.StudentNumber).IsRequired().HasMaxLength(10);
             entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
             entity.Property(e => e.LastName).HasMaxLength(100);
             entity.Property(e => e.EmailAddress).IsRequired().HasMaxLength(200);
@@ -35,6 +36,7 @@ public class StudentDbContext : DbContext
             entity.Property(e => e.Nin).HasMaxLength(20);
 
             // Enforce unique email (and NIN if applicable) at the DB level
+            entity.HasIndex(e => e.StudentNumber).IsUnique();
             entity.HasIndex(e => e.EmailAddress).IsUnique();
             entity.HasIndex(e => e.Nin).IsUnique();
 

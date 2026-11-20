@@ -25,6 +25,11 @@ public class StudentRepository : IStudentRepository
         return await _context.Students.AsNoTracking().FirstOrDefaultAsync(s => s.EmailAddress == email, cancellationToken);
     }
 
+    public async Task<Student?> GetByNumberAsync(string number, CancellationToken cancellationToken = default)
+    {
+        return await _context.Students.AsNoTracking().FirstOrDefaultAsync(s => s.StudentNumber == number, cancellationToken);
+    }
+
     public async Task<IEnumerable<Student>> ListAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Students.ToListAsync(cancellationToken);

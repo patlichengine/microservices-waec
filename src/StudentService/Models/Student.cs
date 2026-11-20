@@ -8,6 +8,10 @@ public class Student
     public Guid Id { get; set; }
 
     [Required]
+    [StringLength(10)]
+    public string StudentNumber { get; set; } = null!;
+
+    [Required]
     [StringLength(100)]
     public string FirstName { get; set; } = null!;
 

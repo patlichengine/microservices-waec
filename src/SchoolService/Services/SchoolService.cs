@@ -156,7 +156,7 @@ public partial class SchoolService(
 
             var school = new School
             {
-                Id = dto.Id == Guid.Empty ? Guid.NewGuid() : dto.Id,
+                Id = Guid.NewGuid(),
                 SchoolNo = dto.SchoolNo,
                 SchoolName = dto.SchoolName,
                 SchoolAddress = dto.SchoolAddress,
