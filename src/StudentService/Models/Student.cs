@@ -29,5 +29,7 @@ public class Student
     [StringLength(20)]
     public string Nin { get; set; } = "";
     public DateTime DateOfBirth { get; set; }
+
+    public bool IsDeleted { get; set; } = false;
    
 }

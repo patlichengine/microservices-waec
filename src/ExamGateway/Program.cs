@@ -140,6 +140,7 @@ app.UseSwaggerUI(options =>
     options.SwaggerEndpoint("/swagger/registration/swagger/v1/swagger.json", "Registrations Service v1");
     options.SwaggerEndpoint("/swagger/orders/swagger/v1/swagger.json", "Orders Service v1");
     options.SwaggerEndpoint("/swagger/student/swagger/v1/swagger.json", "Student Service v1");
+    options.SwaggerEndpoint("/swagger/school/swagger/v1/swagger.json", "School Service v1");
     options.EnablePersistAuthorization();
 });
 

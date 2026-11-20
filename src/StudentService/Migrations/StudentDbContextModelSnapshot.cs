@@ -45,6 +45,9 @@ namespace StudentService.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -66,6 +69,12 @@ namespace StudentService.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EmailAddress")
+                        .IsUnique();
+
+                    b.HasIndex("Nin")
+                        .IsUnique();
 
                     b.ToTable("Students", (string)null);
                 });

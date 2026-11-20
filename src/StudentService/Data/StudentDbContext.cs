@@ -33,7 +33,16 @@ public class StudentDbContext : DbContext
             entity.Property(e => e.Gender).HasMaxLength(10);
             entity.Property(e => e.SchoolName).HasMaxLength(200);
             entity.Property(e => e.Nin).HasMaxLength(20);
+
+            // Enforce unique email (and NIN if applicable) at the DB level
+            entity.HasIndex(e => e.EmailAddress).IsUnique();
+            entity.HasIndex(e => e.Nin).IsUnique();
+
+            // Automatically filter out soft-deleted students on queries
+            entity.HasQueryFilter(e => !e.IsDeleted);
         });
+
+        
 
         // what next? I want to add a seeding data for the student model
         // add seeding data for the student model multiple at once  

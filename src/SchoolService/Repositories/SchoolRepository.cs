@@ -1,0 +1,67 @@
+// implement the ISchoolRepository interface with the SchoolServiceDbContext class
+using SchoolService.Models;
+using SchoolService.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace SchoolService.Repositories;
+
+public class SchoolRepository(SchoolDbContext context) : ISchoolRepository
+{
+    private readonly SchoolDbContext _context = context;
+
+    public async Task<School?> GetAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _context.Schools.FindAsync([id, cancellationToken], cancellationToken: cancellationToken); 
+    }
+
+    //GetByNameAsync 
+    public async Task<School?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        return await _context.Schools.AsNoTracking().FirstOrDefaultAsync(s => s.SchoolName == name, cancellationToken);
+    }
+
+    // GetByNumberAsync 
+    public async Task<School?> GetByNumberAsync(string number, CancellationToken cancellationToken = default)
+    {
+        return await _context.Schools.AsNoTracking().FirstOrDefaultAsync(s => s.SchoolNo == number, cancellationToken);
+    }
+
+    // list all school available in the database
+    // todo: add pagination later
+    public async Task<IEnumerable<School>> ListAsync(CancellationToken cancellationToken)
+    {
+        return await _context.Schools.AsNoTracking().ToListAsync();
+    }
+
+    public async Task<IEnumerable<School>> ListByLgaAsync(Guid lgaId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Schools.AsNoTracking().Where(c => c.LgaId == lgaId).ToListAsync(cancellationToken: cancellationToken);
+    }
+
+    // list all school available in the database by state
+    public async Task<IEnumerable<School>> ListByStateAsync(Guid stateId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Schools.AsNoTracking().Where(c => c.Lga.StateId == stateId).ToListAsync();
+    }
+
+    // list the schools by country id
+    public async Task<IEnumerable<School>> ListByCountryAsync(Guid countryId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Schools.AsNoTracking().Where(c => c.Lga.State.CountryId == countryId).ToListAsync();
+    }
+
+    public async Task AddAsync(School school, CancellationToken cancellationToken = default)
+    {
+        await _context.Schools.AddAsync(school, cancellationToken);
+    }
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public void RemoveAsync(School school)
+    {
+        _context.Schools.Remove(school);
+    }
+}
